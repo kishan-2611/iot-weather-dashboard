@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Weather Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gaugeJS@1.3.7/dist/gauge.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #181818;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .gauge-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 150px !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 style="text-align: center;">IoT Weather Monitoring Dashboard</h1>
+    <div class="dashboard">
+        <div class="card">
+            <h2>Temperature</h2>
+            <div class="gauge-container">
+                <canvas id="tempGauge"></canvas>
+            </div>
+            <p id="tempValue">-- °C</p>
+            <canvas id="tempChart"></canvas>
+        </div>
+        <div class="card">
+            <h2>Humidity</h2>
+            <div class="gauge-container">
+                <canvas id="humidityGauge"></canvas>
+            </div>
+            <p id="humidityValue">-- %</p>
+            <canvas id="humidityChart"></canvas>
+        </div>
+        <div class="card" style="grid-column: span 2;">
+            <h2>Previous Readings</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Temperature (°C)</th>
+                        <th>Humidity (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="history"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let labels = [], tempData = [], humidityData = [];
+        let tempGauge, humidityGauge;
+
+        function generateRandomData(min, max) {
+            return (Math.random() * (max - min) + min).toFixed(2);
+        }
+
+        function updateData() {
+            let temp = generateRandomData(20, 35);
+            let humidity = generateRandomData(40, 90);
+            let timestamp = new Date().toLocaleTimeString();
+
+            document.getElementById("tempValue").innerText = temp + " °C";
+            document.getElementById("humidityValue").innerText = humidity + " %";
+            tempGauge.set(temp);
+            humidityGauge.set(humidity);
+
+            let table = document.getElementById("history");
+            let newRow = `<tr><td>${timestamp}</td><td>${temp}</td><td>${humidity}</td></tr>`;
+            table.innerHTML = newRow + table.innerHTML;
+
+            if (labels.length >= 10) {
+                labels.shift(); tempData.shift(); humidityData.shift();
+            }
+            labels.push(timestamp);
+            tempData.push(temp);
+            humidityData.push(humidity);
+            tempChart.update();
+            humidityChart.update();
+        }
+
+        function createGauges() {
+            let tempOpts = { angle: 0, lineWidth: 0.2, radiusScale: 1, strokeColor: '#222', highDpiSupport: true };
+            tempGauge = new Gauge(document.getElementById("tempGauge")).setOptions(tempOpts);
+            tempGauge.maxValue = 40;
+            tempGauge.setMinValue(10);
+            tempGauge.animationSpeed = 32;
+            tempGauge.set(0);
+
+            let humidityOpts = { angle: 0, lineWidth: 0.2, radiusScale: 1, strokeColor: '#222', highDpiSupport: true };
+            humidityGauge = new Gauge(document.getElementById("humidityGauge")).setOptions(humidityOpts);
+            humidityGauge.maxValue = 100;
+            humidityGauge.setMinValue(20);
+            humidityGauge.animationSpeed = 32;
+            humidityGauge.set(0);
+        }
+
+        function createCharts() {
+            let tempCtx = document.getElementById("tempChart").getContext("2d");
+            window.tempChart = new Chart(tempCtx, {
+                type: "line",
+                data: { labels: labels, datasets: [{ label: "Temperature (°C)", data: tempData, borderColor: "red", fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
+            });
+
+            let humidityCtx = document.getElementById("humidityChart").getContext("2d");
+            window.humidityChart = new Chart(humidityCtx, {
+                type: "line",
+                data: { labels: labels, datasets: [{ label: "Humidity (%)", data: humidityData, borderColor: "blue", fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
+            });
+        }
+
+        createGauges();
+        createCharts();
+        setInterval(updateData, 30000);
+        updateData();
+    </script>
+</body>
+
+</html>
